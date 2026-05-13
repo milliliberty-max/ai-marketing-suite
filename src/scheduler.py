@@ -42,6 +42,7 @@ class PostScheduler:
             logger.info("Post scheduler started")
             self._restore_pending_jobs()
             self._setup_daily_auto_post()
+            self._setup_auto_agents()
 
     def _setup_daily_auto_post(self) -> None:
         """Set up auto-post jobs at peak times: 10, 12, 14, 16, 18 UTC (max 5/day)."""
@@ -57,6 +58,70 @@ class PostScheduler:
             "Auto-post scheduled at peak times: %s UTC (max 5 posts/day, 2h gap)",
             peak_hours,
         )
+
+    def _setup_auto_agents(self) -> None:
+        """Set up automatic agent runs."""
+        # Daily analysis agents at 9:00 UTC (before posting starts)
+        self.scheduler.add_job(
+            self._run_daily_agents,
+            trigger=CronTrigger(hour=9, minute=0),
+            id="daily_agents",
+            replace_existing=True,
+        )
+        # Carousel post at 13:00 UTC (1 per day, between regular posts)
+        self.scheduler.add_job(
+            self._run_carousel_post,
+            trigger=CronTrigger(hour=13, minute=0),
+            id="daily_carousel",
+            replace_existing=True,
+        )
+        # Post-analysis after last post at 19:00 UTC
+        self.scheduler.add_job(
+            self._run_post_analysis,
+            trigger=CronTrigger(hour=19, minute=0),
+            id="post_analysis",
+            replace_existing=True,
+        )
+        logger.info(
+            "Auto agents scheduled: analysis@9UTC, carousel@13UTC, "
+            "post-analysis@19UTC"
+        )
+
+    async def _run_daily_agents(self) -> None:
+        """Run all analysis agents daily."""
+        import asyncio
+
+        from src.auto_agents import run_all_analysis_agents
+
+        logger.info("Running daily auto-agents...")
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, run_all_analysis_agents)
+        logger.info("Daily auto-agents completed.")
+
+    async def _run_carousel_post(self) -> None:
+        """Run carousel post if enough images."""
+        from src.auto_agents import auto_post_carousel
+        from src.auto_poster import get_posts_today_count
+
+        posts_today = get_posts_today_count()
+        if posts_today >= 5:
+            logger.info("Daily limit reached. Skipping carousel.")
+            return
+
+        logger.info("Running auto carousel post...")
+        result = await auto_post_carousel()
+        logger.info("Carousel result: %s", result.get("status"))
+
+    async def _run_post_analysis(self) -> None:
+        """Run performance analysis after daily posts."""
+        import asyncio
+
+        from src.auto_agents import run_performance_analysis
+
+        logger.info("Running post-day performance analysis...")
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, run_performance_analysis)
+        logger.info("Post-analysis completed.")
 
     async def _run_daily_auto_post(self) -> None:
         """Execute an auto-post if daily limit not reached."""

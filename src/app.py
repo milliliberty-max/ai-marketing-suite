@@ -41,6 +41,7 @@ from src.agents.growth_crew import (
     generate_story_ideas,
     optimize_bio,
 )
+from src.auto_agents import get_latest_results, run_all_analysis_agents
 from src.auto_poster import (
     auto_post_next_image,
     get_auto_post_log,
@@ -115,6 +116,8 @@ async def dashboard(request: Request):
     except Exception as e:
         logger.error("Dashboard recent posts error: %s", e)
 
+    agent_results = get_latest_results()
+
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
@@ -122,6 +125,7 @@ async def dashboard(request: Request):
             "insights": insights,
             "recent_posts": recent,
             "pending_count": pending_count,
+            "agent_results": agent_results,
         },
     )
 
@@ -560,6 +564,34 @@ async def advanced_tools_page(request: Request):
         name="advanced_tools.html",
         context={},
     )
+
+
+# ── Auto Agent Controls ────────────────────────────────────────────────────
+
+
+@app.post("/api/agents/run-all")
+async def api_run_all_agents():
+    """Run all analysis agents now (manual trigger)."""
+    import asyncio
+
+    loop = asyncio.get_event_loop()
+    results = await loop.run_in_executor(None, run_all_analysis_agents)
+    return {"success": True, "message": "All agents completed", **results}
+
+
+@app.get("/api/agents/results")
+async def api_agent_results():
+    """Get latest agent results."""
+    return {"success": True, "results": get_latest_results()}
+
+
+@app.post("/api/agents/carousel")
+async def api_carousel_now():
+    """Post a carousel now."""
+    from src.auto_agents import auto_post_carousel
+
+    result = await auto_post_carousel()
+    return {"success": True, **result}
 
 
 # ── Health ─────────────────────────────────────────────────────────────────
