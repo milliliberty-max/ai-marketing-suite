@@ -1,6 +1,6 @@
-"""Image analysis using OpenAI Vision API (GPT-4o)."""
+"""Image analysis using Groq Vision API."""
 
-from openai import OpenAI
+from groq import Groq
 
 from src.config.settings import settings
 
@@ -15,7 +15,7 @@ def analyze_image_from_url(image_url: str, context: str = "") -> str:
     Returns:
         Detailed description of the image content.
     """
-    client = OpenAI(api_key=settings.openai_api_key)
+    client = Groq(api_key=settings.groq_api_key)
 
     system_prompt = (
         "You are a professional product photographer and fashion copywriter. "
@@ -33,7 +33,7 @@ def analyze_image_from_url(image_url: str, context: str = "") -> str:
         system_prompt += f"\n\nBrand context: {context}"
 
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
         messages=[
             {"role": "system", "content": system_prompt},
             {
@@ -45,7 +45,7 @@ def analyze_image_from_url(image_url: str, context: str = "") -> str:
                     },
                     {
                         "type": "image_url",
-                        "image_url": {"url": image_url, "detail": "high"},
+                        "image_url": {"url": image_url},
                     },
                 ],
             },

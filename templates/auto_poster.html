@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Poster - InstaAI</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <nav class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">📸</span>
+                <h1>InstaAI</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/">Dashboard</a></li>
+                <li><a href="/auto-poster" class="active">Auto Poster</a></li>
+                <li><a href="/growth-tools">Growth Tools</a></li>
+            </ul>
+        </nav>
+
+        <main class="content">
+            <section class="tab active">
+                <h2>Auto Poster (Folder-based)</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Upload images below. AI will automatically generate
+                    professional captions, hashtags, and post to Instagram at peak times.
+                    <br><strong>Schedule:</strong> 5 posts/day max at 10:00, 12:00, 14:00, 16:00, 18:00 UTC (2h gap).
+                </p>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Queued Images</h3>
+                        <p>{{ unposted_count }}</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Posted</h3>
+                        <p>{{ total_posted }}</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Today</h3>
+                        <p>{{ posts_today }}/5</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Schedule</h3>
+                        <p style="font-size: 0.8rem;">10,12,14,16,18 UTC</p>
+                    </div>
+                </div>
+
+                <div class="form-card" style="margin-top: 1.5rem;">
+                    <h3>Upload Images</h3>
+                    <form action="/upload" method="POST" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="image-files">Select Images</label>
+                            <input type="file" id="image-files" name="files" multiple
+                                accept=".jpg,.jpeg,.png,.webp"
+                                style="color: var(--text-primary);">
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            Upload to Queue
+                        </button>
+                    </form>
+                </div>
+
+                <div class="form-card" style="margin-top: 1rem;">
+                    <form action="/trigger-auto-post" method="POST">
+                        <button type="submit" class="btn btn-primary"
+                            style="background: var(--accent-gradient);"
+                            onclick="this.disabled=true; this.textContent='Posting... please wait 2-3 min'; this.form.submit();">
+                            Post Next Image Now (AI Auto-Caption)
+                        </button>
+                    </form>
+                </div>
+
+                <h3 style="margin-top: 2rem;">Queued Files</h3>
+                <div class="posts-grid">
+                    {% if unposted_files %}
+                        {% for f in unposted_files %}
+                        <div class="post-card">
+                            <div class="caption">{{ f }}</div>
+                            <div class="meta"><span>Queued</span></div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="placeholder">No images in queue.</p>
+                    {% endif %}
+                </div>
+
+                <h3 style="margin-top: 2rem;">Recent Auto-Post Log</h3>
+                <div class="posts-grid">
+                    {% if recent_log %}
+                        {% for entry in recent_log|reverse %}
+                        <div class="post-card">
+                            <div class="caption">{{ entry.filename }}</div>
+                            <div class="meta">
+                                <span style="color: {{ '#4caf50' if entry.status == 'posted' else '#f44336' }}">
+                                    {{ entry.status|upper }}
+                                </span>
+                                <span>{{ entry.timestamp[:19] if entry.timestamp else '' }}</span>
+                            </div>
+                            {% if entry.caption_preview %}
+                            <div style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem;">
+                                {{ entry.caption_preview[:100] }}...
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="placeholder">No posts yet.</p>
+                    {% endif %}
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

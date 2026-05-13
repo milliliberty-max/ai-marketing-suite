@@ -44,21 +44,32 @@ class PostScheduler:
             self._setup_daily_auto_post()
 
     def _setup_daily_auto_post(self) -> None:
-        """Set up daily auto-post job at 10:00 AM UTC."""
-        self.scheduler.add_job(
-            self._run_daily_auto_post,
-            trigger=CronTrigger(hour=10, minute=0),
-            id="daily_auto_post",
-            replace_existing=True,
+        """Set up auto-post jobs at peak times: 10, 12, 14, 16, 18 UTC (max 5/day)."""
+        peak_hours = [10, 12, 14, 16, 18]
+        for hour in peak_hours:
+            self.scheduler.add_job(
+                self._run_daily_auto_post,
+                trigger=CronTrigger(hour=hour, minute=0),
+                id=f"auto_post_{hour}",
+                replace_existing=True,
+            )
+        logger.info(
+            "Auto-post scheduled at peak times: %s UTC (max 5 posts/day, 2h gap)",
+            peak_hours,
         )
-        logger.info("Daily auto-post scheduled for 10:00 UTC")
 
     async def _run_daily_auto_post(self) -> None:
-        """Execute the daily auto-post."""
-        from src.auto_poster import auto_post_next_image
-        logger.info("Running daily auto-post...")
+        """Execute an auto-post if daily limit not reached."""
+        from src.auto_poster import auto_post_next_image, get_posts_today_count
+
+        posts_today = get_posts_today_count()
+        if posts_today >= 5:
+            logger.info("Daily limit reached (%d/5). Skipping.", posts_today)
+            return
+
+        logger.info("Running auto-post (%d/5 today)...", posts_today + 1)
         result = await auto_post_next_image()
-        logger.info("Daily auto-post result: %s", result.get('status'))
+        logger.info("Auto-post result: %s", result.get("status"))
 
     def _restore_pending_jobs(self) -> None:
         now = datetime.now(timezone.utc)

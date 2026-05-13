@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_key: str = ""
 
+    # Groq
+    groq_api_key: str = ""
+
     # App
     app_host: str = "0.0.0.0"
     app_port: int = 8000

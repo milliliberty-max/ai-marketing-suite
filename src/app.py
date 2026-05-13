@@ -8,14 +8,25 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from src.agents.content_crew import run_content_generation_crew
+from src.agents.growth_crew import (
+    analyze_competitors,
+    generate_ab_captions,
+    generate_alt_text,
+    generate_comment_replies,
+    generate_content_calendar,
+    generate_reel_script,
+    generate_story_ideas,
+    optimize_bio,
+)
 from src.auto_poster import (
     auto_post_next_image,
     get_auto_post_log,
+    get_posts_today_count,
     get_unposted_images,
 )
 from src.models import (
@@ -35,6 +46,9 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    (BASE_DIR / "uploads").mkdir(exist_ok=True)
+    (BASE_DIR / "data").mkdir(exist_ok=True)
+    (BASE_DIR / "schedules").mkdir(exist_ok=True)
     post_scheduler.start()
     logger.info("Instagram CrewAI Automation started")
     yield
@@ -234,6 +248,26 @@ async def upload_images(files: list[UploadFile]):
     }
 
 
+@app.post("/upload")
+async def upload_images_form(files: list[UploadFile]):
+    """Upload images via traditional form POST (for tunnel access)."""
+    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    for file in files:
+        if not file.filename:
+            continue
+        dest = UPLOADS_DIR / file.filename
+        with open(dest, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+    return RedirectResponse(url="/auto-poster", status_code=303)
+
+
+@app.post("/trigger-auto-post")
+async def trigger_auto_post_form():
+    """Trigger auto-post via form POST (for tunnel access)."""
+    await auto_post_next_image()
+    return RedirectResponse(url="/auto-poster", status_code=303)
+
+
 @app.get("/api/folder-status")
 async def folder_status():
     """Get status of the uploads folder."""
@@ -248,6 +282,26 @@ async def folder_status():
     }
 
 
+@app.get("/auto-poster", response_class=HTMLResponse)
+async def auto_poster_page(request: Request):
+    """Server-rendered Auto Poster page."""
+    unposted = get_unposted_images()
+    post_log = get_auto_post_log()
+    return templates.TemplateResponse(
+        request=request,
+        name="auto_poster.html",
+        context={
+            "unposted_count": len(unposted),
+            "unposted_files": [f.name for f in unposted],
+            "total_posted": len(
+                [p for p in post_log if p["status"] == "posted"]
+            ),
+            "posts_today": get_posts_today_count(),
+            "recent_log": post_log[-10:],
+        },
+    )
+
+
 @app.post("/api/auto-post-now")
 async def trigger_auto_post():
     """Manually trigger an auto-post right now."""
@@ -255,6 +309,92 @@ async def trigger_auto_post():
     if result["status"] == "error":
         raise HTTPException(status_code=500, detail=result["message"])
     return {"success": True, **result}
+
+
+# ── Growth Tools ───────────────────────────────────────────────────────────
+
+@app.post("/api/growth/optimize-bio")
+async def api_optimize_bio():
+    """Generate optimized Instagram bio options."""
+    result = optimize_bio()
+    return {"success": True, **result}
+
+
+@app.post("/api/growth/competitor-analysis")
+async def api_competitor_analysis():
+    """Run competitor analysis for growth insights."""
+    result = analyze_competitors()
+    return {"success": True, **result}
+
+
+@app.post("/api/growth/comment-replies")
+async def api_comment_replies(request: Request):
+    """Generate reply suggestions for comments."""
+    data = await request.json()
+    comments = data.get("comments", [])
+    if not comments:
+        raise HTTPException(status_code=400, detail="No comments provided")
+    result = generate_comment_replies(comments)
+    return {"success": True, **result}
+
+
+@app.post("/api/growth/story-ideas")
+async def api_story_ideas(request: Request):
+    """Generate story ideas for a topic."""
+    data = await request.json()
+    topic = data.get("topic", "luxury handcrafted accessories")
+    result = generate_story_ideas(topic)
+    return {"success": True, **result}
+
+
+@app.post("/api/growth/content-calendar")
+async def api_content_calendar(request: Request):
+    """Generate a content calendar."""
+    data = await request.json()
+    weeks = data.get("weeks", 1)
+    result = generate_content_calendar(weeks)
+    return {"success": True, **result}
+
+
+@app.post("/api/growth/ab-captions")
+async def api_ab_captions(request: Request):
+    """Generate A/B test caption variations."""
+    data = await request.json()
+    topic = data.get("topic", "luxury clutch")
+    image_description = data.get("image_description", "")
+    result = generate_ab_captions(topic, image_description)
+    return {"success": True, **result}
+
+
+@app.post("/api/growth/alt-text")
+async def api_alt_text(request: Request):
+    """Generate SEO-optimized alt text."""
+    data = await request.json()
+    image_description = data.get("image_description", "")
+    if not image_description:
+        raise HTTPException(status_code=400, detail="No image description provided")
+    result = generate_alt_text(image_description)
+    return {"success": True, **result}
+
+
+@app.post("/api/growth/reel-script")
+async def api_reel_script(request: Request):
+    """Generate a Reel video script."""
+    data = await request.json()
+    topic = data.get("topic", "luxury clutch showcase")
+    product_description = data.get("product_description", "")
+    result = generate_reel_script(topic, product_description)
+    return {"success": True, **result}
+
+
+@app.get("/growth-tools", response_class=HTMLResponse)
+async def growth_tools_page(request: Request):
+    """Growth tools dashboard page."""
+    return templates.TemplateResponse(
+        request=request,
+        name="growth_tools.html",
+        context={},
+    )
 
 
 # ── Health ─────────────────────────────────────────────────────────────────

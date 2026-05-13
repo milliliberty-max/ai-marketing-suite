@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Growth Tools - InstaAI</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .tool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.2rem; margin-top: 1.5rem; }
+        .tool-card { background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border-color); }
+        .tool-card h3 { color: var(--text-primary); margin-bottom: 0.5rem; font-size: 1.1rem; }
+        .tool-card p { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem; }
+        .tool-card .badge { display: inline-block; background: var(--accent-gradient); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-bottom: 0.5rem; }
+        .result-box { background: #1a1a2e; border-radius: 8px; padding: 1rem; margin-top: 1rem; white-space: pre-wrap; color: var(--text-secondary); font-size: 0.85rem; max-height: 400px; overflow-y: auto; display: none; }
+        .btn-tool { background: var(--accent-gradient); color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; width: 100%; }
+        .btn-tool:hover { opacity: 0.9; }
+        .btn-tool:disabled { opacity: 0.5; cursor: not-allowed; }
+        .input-field { width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); margin-bottom: 0.8rem; font-size: 0.85rem; }
+        textarea.input-field { min-height: 80px; resize: vertical; }
+        .loading { color: #ffd700; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <nav class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">📸</span>
+                <h1>InstaAI</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/">Dashboard</a></li>
+                <li><a href="/auto-poster">Auto Poster</a></li>
+                <li><a href="/growth-tools" class="active">Growth Tools</a></li>
+            </ul>
+        </nav>
+
+        <main class="content">
+            <section class="tab active">
+                <h2>🚀 Growth Tools (8 AI Agents)</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">
+                    AI-powered tools to grow @riverwalk.lhr followers. Each tool uses a specialized AI agent.
+                </p>
+
+                <div class="tool-grid">
+                    <!-- 1. Bio Optimizer -->
+                    <div class="tool-card">
+                        <span class="badge">Agent 1</span>
+                        <h3>📝 Bio Optimizer</h3>
+                        <p>Generate 3 optimized Instagram bio options that convert visitors into followers.</p>
+                        <button class="btn-tool" onclick="runTool(this, '/api/growth/optimize-bio', {}, 'bio-result')">
+                            Optimize My Bio
+                        </button>
+                        <div class="result-box" id="bio-result"></div>
+                    </div>
+
+                    <!-- 2. Competitor Analysis -->
+                    <div class="tool-card">
+                        <span class="badge">Agent 2</span>
+                        <h3>🔍 Competitor Analysis</h3>
+                        <p>Analyze top luxury brands' Instagram strategies and get actionable growth recommendations.</p>
+                        <button class="btn-tool" onclick="runTool(this, '/api/growth/competitor-analysis', {}, 'comp-result')">
+                            Analyze Competitors
+                        </button>
+                        <div class="result-box" id="comp-result"></div>
+                    </div>
+
+                    <!-- 3. Comment Reply Generator -->
+                    <div class="tool-card">
+                        <span class="badge">Agent 3</span>
+                        <h3>💬 Comment Reply Generator</h3>
+                        <p>Generate engaging replies to comments that build community.</p>
+                        <textarea class="input-field" id="comments-input" placeholder="Paste comments here (one per line):&#10;Beautiful clutch! Where can I buy?&#10;Price?&#10;Bohot pyari hai!"></textarea>
+                        <button class="btn-tool" onclick="runCommentReplies(this)">
+                            Generate Replies
+                        </button>
+                        <div class="result-box" id="comment-result"></div>
+                    </div>
+
+                    <!-- 4. Story Ideas Generator -->
+                    <div class="tool-card">
+                        <span class="badge">Agent 4</span>
+                        <h3>📱 Story Ideas Generator</h3>
+                        <p>Get 5 interactive Story ideas (polls, quizzes, BTS) for any topic.</p>
+                        <input type="text" class="input-field" id="story-topic" placeholder="Topic: e.g., bridal clutch collection" value="luxury handcrafted accessories">
+                        <button class="btn-tool" onclick="runTool(this, '/api/growth/story-ideas', {topic: document.getElementById('story-topic').value}, 'story-result')">
+                            Generate Story Ideas
+                        </button>
+                        <div class="result-box" id="story-result"></div>
+                    </div>
+
+                    <!-- 5. Content Calendar -->
+                    <div class="tool-card">
+                        <span class="badge">Agent 5</span>
+                        <h3>📅 Content Calendar</h3>
+                        <p>Generate a weekly content calendar with post types, topics, and timing.</p>
+                        <select class="input-field" id="cal-weeks">
+                            <option value="1">1 Week</option>
+                            <option value="2">2 Weeks</option>
+                            <option value="4">4 Weeks (Month)</option>
+                        </select>
+                        <button class="btn-tool" onclick="runTool(this, '/api/growth/content-calendar', {weeks: parseInt(document.getElementById('cal-weeks').value)}, 'cal-result')">
+                            Generate Calendar
+                        </button>
+                        <div class="result-box" id="cal-result"></div>
+                    </div>
+
+                    <!-- 6. Caption A/B Tester -->
+                    <div class="tool-card">
+                        <span class="badge">Agent 6</span>
+                        <h3>🔄 Caption A/B Tester</h3>
+                        <p>Generate 2 caption styles (emotional vs direct) to find what works best.</p>
+                        <input type="text" class="input-field" id="ab-topic" placeholder="Topic: e.g., gold bridal clutch" value="luxury bridal clutch">
+                        <button class="btn-tool" onclick="runTool(this, '/api/growth/ab-captions', {topic: document.getElementById('ab-topic').value}, 'ab-result')">
+                            Generate A/B Captions
+                        </button>
+                        <div class="result-box" id="ab-result"></div>
+                    </div>
+
+                    <!-- 7. SEO Alt Text -->
+                    <div class="tool-card">
+                        <span class="badge">Agent 7</span>
+                        <h3>🔎 SEO Alt Text</h3>
+                        <p>Generate search-optimized alt text for your images to rank in Instagram search.</p>
+                        <textarea class="input-field" id="alt-desc" placeholder="Describe the image: e.g., Gold beaded clutch with crystal embellishments on marble surface"></textarea>
+                        <button class="btn-tool" onclick="runTool(this, '/api/growth/alt-text', {image_description: document.getElementById('alt-desc').value}, 'alt-result')">
+                            Generate Alt Text
+                        </button>
+                        <div class="result-box" id="alt-result"></div>
+                    </div>
+
+                    <!-- 8. Reels Script Writer -->
+                    <div class="tool-card">
+                        <span class="badge">Agent 8</span>
+                        <h3>🎬 Reels Script Writer</h3>
+                        <p>Generate a 15-30s Reel script with hooks, transitions, and trending audio ideas.</p>
+                        <input type="text" class="input-field" id="reel-topic" placeholder="Reel topic: e.g., clutch reveal" value="luxury clutch showcase">
+                        <input type="text" class="input-field" id="reel-product" placeholder="Product: e.g., gold beaded evening clutch (optional)">
+                        <button class="btn-tool" onclick="runTool(this, '/api/growth/reel-script', {topic: document.getElementById('reel-topic').value, product_description: document.getElementById('reel-product').value}, 'reel-result')">
+                            Generate Reel Script
+                        </button>
+                        <div class="result-box" id="reel-result"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        async function runTool(btn, endpoint, data, resultId) {
+            const resultBox = document.getElementById(resultId);
+            btn.disabled = true;
+            btn.textContent = 'Running AI Agent... (30-60s)';
+            resultBox.style.display = 'block';
+            resultBox.innerHTML = '<span class="loading">AI agent is working... please wait...</span>';
+
+            try {
+                const resp = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const result = await resp.json();
+                const output = result.bio_options || result.analysis || result.replies ||
+                    result.story_ideas || result.calendar || result.captions ||
+                    result.alt_text || result.reel_script || result.detail || JSON.stringify(result, null, 2);
+                resultBox.textContent = output;
+            } catch (e) {
+                resultBox.textContent = 'Error: ' + e.message;
+            }
+            btn.disabled = false;
+            btn.textContent = 'Run Again';
+        }
+
+        function runCommentReplies(btn) {
+            const input = document.getElementById('comments-input').value;
+            const comments = input.split('\n').map(c => c.trim()).filter(c => c);
+            if (comments.length === 0) { alert('Please enter at least one comment'); return; }
+            runTool(btn, '/api/growth/comment-replies', {comments}, 'comment-result');
+        }
+    </script>
+</body>
+</html>

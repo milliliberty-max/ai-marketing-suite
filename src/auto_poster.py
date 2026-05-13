@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -58,6 +59,17 @@ def get_unposted_images() -> list[Path]:
 def get_auto_post_log() -> list[dict]:
     """Get the auto-post history log."""
     return _load_json(AUTO_POST_LOG)
+
+
+def get_posts_today_count() -> int:
+    """Count how many posts were successfully made today."""
+    today = datetime.now(timezone.utc).date().isoformat()
+    log = _load_json(AUTO_POST_LOG)
+    return sum(
+        1 for entry in log
+        if entry.get("status") == "posted"
+        and entry.get("timestamp", "").startswith(today)
+    )
 
 
 def _log_posted(filename: str, post_data: dict) -> None:
@@ -128,13 +140,31 @@ async def auto_post_next_image(
             num_posts=1,
             image_url=public_url,
         )
-        caption_text = crew_result.get("raw_output", "")
+        caption = crew_result.get("caption", "")
+        hashtags = crew_result.get("hashtags", "")
+        caption_text = f"{caption}\n\n{hashtags}".strip()
+        if not caption_text:
+            caption_text = crew_result.get("raw_output", "")
+        caption_text = _clean_caption(caption_text)
+        if len(caption_text) > 2200:
+            caption_text = caption_text[:2197] + "..."
         logger.info("AI caption generated (%d chars)", len(caption_text))
     except Exception as e:
         error_msg = f"AI content generation failed: {e}"
         logger.error(error_msg)
         _log_error(image_path.name, error_msg)
         return {"status": "error", "message": error_msg}
+
+    alt_text = ""
+    try:
+        image_desc = crew_result.get("image_description", "")
+        if image_desc:
+            from src.agents.growth_crew import generate_alt_text
+            alt_result = generate_alt_text(image_desc)
+            alt_text = alt_result.get("alt_text", "")
+            logger.info("Alt text generated: %s", alt_text[:80])
+    except Exception as e:
+        logger.warning("Alt text generation failed (non-critical): %s", e)
 
     try:
         api = InstagramAPI()
@@ -149,6 +179,7 @@ async def auto_post_next_image(
             "media_id": media_id,
             "caption_preview": caption_text[:200],
             "public_url": public_url,
+            "alt_text": alt_text,
         })
 
         return {
@@ -162,6 +193,32 @@ async def auto_post_next_image(
         logger.error(error_msg)
         _log_error(image_path.name, error_msg)
         return {"status": "error", "message": error_msg}
+
+
+def _clean_caption(text: str) -> str:
+    """Remove markdown formatting from AI-generated captions."""
+    text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
+    text = re.sub(r"\*(.*?)\*", r"\1", text)
+    text = re.sub(r"#{1,3}\s+", "", text)
+    lines = text.strip().split("\n")
+    cleaned = []
+    for line in lines:
+        line = line.strip()
+        if line.startswith("High-Volume Hashtags"):
+            continue
+        if line.startswith("Medium-Volume Hashtags"):
+            continue
+        if line.startswith("Niche Hashtags"):
+            continue
+        if line.startswith("Branded Hashtag"):
+            continue
+        if "(" in line and "K)" in line:
+            tag = line.split("(")[0].strip()
+            if tag.startswith("#"):
+                cleaned.append(tag)
+                continue
+        cleaned.append(line)
+    return "\n".join(cleaned).strip()
 
 
 def _guess_topic(filename: str) -> str:

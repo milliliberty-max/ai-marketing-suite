@@ -1,11 +1,15 @@
 """Instagram Graph API client for publishing posts."""
 
+import asyncio
+import logging
+
 import httpx
 
 from src.config.settings import settings
 
-FB_GRAPH_API_BASE = "https://graph.facebook.com/v19.0"
-IG_GRAPH_API_BASE = "https://graph.instagram.com"
+logger = logging.getLogger(__name__)
+
+IG_GRAPH_API_BASE = "https://graph.instagram.com/v19.0"
 
 
 class InstagramAPI:
@@ -30,13 +34,15 @@ class InstagramAPI:
         Returns:
             The creation_id of the media container.
         """
-        url = f"{FB_GRAPH_API_BASE}/{self.account_id}/media"
-        params = {
+        url = f"{IG_GRAPH_API_BASE}/{self.account_id}/media"
+        payload = {
             "image_url": image_url,
             "caption": caption,
             "access_token": self.access_token,
         }
-        resp = await self.client.post(url, params=params)
+        resp = await self.client.post(url, data=payload)
+        if resp.status_code != 200:
+            logger.error("Instagram API error: %s %s", resp.status_code, resp.text)
         resp.raise_for_status()
         data = resp.json()
         return data["id"]
@@ -55,15 +61,15 @@ class InstagramAPI:
         Returns:
             The creation_id of the carousel container.
         """
-        url = f"{FB_GRAPH_API_BASE}/{self.account_id}/media"
-        params = {
+        url = f"{IG_GRAPH_API_BASE}/{self.account_id}/media"
+        payload = {
             "media_type": "CAROUSEL",
             "caption": caption,
             "access_token": self.access_token,
         }
         for i, child_id in enumerate(children_ids):
-            params[f"children[{i}]"] = child_id
-        resp = await self.client.post(url, params=params)
+            payload[f"children[{i}]"] = child_id
+        resp = await self.client.post(url, data=payload)
         resp.raise_for_status()
         data = resp.json()
         return data["id"]
@@ -77,13 +83,13 @@ class InstagramAPI:
         Returns:
             The creation_id of the item container.
         """
-        url = f"{FB_GRAPH_API_BASE}/{self.account_id}/media"
-        params = {
+        url = f"{IG_GRAPH_API_BASE}/{self.account_id}/media"
+        payload = {
             "image_url": image_url,
             "is_carousel_item": "true",
             "access_token": self.access_token,
         }
-        resp = await self.client.post(url, params=params)
+        resp = await self.client.post(url, data=payload)
         resp.raise_for_status()
         data = resp.json()
         return data["id"]
@@ -91,18 +97,33 @@ class InstagramAPI:
     async def publish_media(self, creation_id: str) -> str:
         """Publish a media container to Instagram.
 
+        Waits for the container to be ready before publishing.
+
         Args:
             creation_id: The media container ID to publish.
 
         Returns:
             The published media ID.
         """
-        url = f"{FB_GRAPH_API_BASE}/{self.account_id}/media_publish"
-        params = {
+        for _ in range(30):
+            status = await self.get_media_status(creation_id)
+            code = status.get("status_code", "")
+            logger.info("Container %s status: %s", creation_id, code)
+            if code == "FINISHED":
+                break
+            if code == "ERROR":
+                logger.error("Container error: %s", status)
+                raise RuntimeError(f"Media container failed: {status}")
+            await asyncio.sleep(2)
+
+        url = f"{IG_GRAPH_API_BASE}/{self.account_id}/media_publish"
+        payload = {
             "creation_id": creation_id,
             "access_token": self.access_token,
         }
-        resp = await self.client.post(url, params=params)
+        resp = await self.client.post(url, data=payload)
+        if resp.status_code != 200:
+            logger.error("Publish error: %s %s", resp.status_code, resp.text)
         resp.raise_for_status()
         data = resp.json()
         return data["id"]
@@ -116,7 +137,7 @@ class InstagramAPI:
         Returns:
             Dict with status_code and other info.
         """
-        url = f"{FB_GRAPH_API_BASE}/{media_id}"
+        url = f"{IG_GRAPH_API_BASE}/{media_id}"
         params = {
             "fields": "status_code,status",
             "access_token": self.access_token,

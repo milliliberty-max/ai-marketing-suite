@@ -33,7 +33,6 @@ function hideLoading() {
 async function apiCall(url, options = {}) {
     const resp = await fetch(url, {
         headers: { 'Content-Type': 'application/json', ...options.headers },
-        credentials: 'include',
         ...options,
     });
     const data = await resp.json();
@@ -152,7 +151,6 @@ document.getElementById('upload-form').addEventListener('submit', async (e) => {
     try {
         const resp = await fetch('/api/upload-images', {
             method: 'POST',
-            credentials: 'include',
             body: formData,
         });
         const data = await resp.json();
