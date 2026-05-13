@@ -4,7 +4,8 @@ import httpx
 
 from src.config.settings import settings
 
-GRAPH_API_BASE = "https://graph.facebook.com/v19.0"
+FB_GRAPH_API_BASE = "https://graph.facebook.com/v19.0"
+IG_GRAPH_API_BASE = "https://graph.instagram.com"
 
 
 class InstagramAPI:
@@ -29,7 +30,7 @@ class InstagramAPI:
         Returns:
             The creation_id of the media container.
         """
-        url = f"{GRAPH_API_BASE}/{self.account_id}/media"
+        url = f"{FB_GRAPH_API_BASE}/{self.account_id}/media"
         params = {
             "image_url": image_url,
             "caption": caption,
@@ -54,7 +55,7 @@ class InstagramAPI:
         Returns:
             The creation_id of the carousel container.
         """
-        url = f"{GRAPH_API_BASE}/{self.account_id}/media"
+        url = f"{FB_GRAPH_API_BASE}/{self.account_id}/media"
         params = {
             "media_type": "CAROUSEL",
             "caption": caption,
@@ -76,7 +77,7 @@ class InstagramAPI:
         Returns:
             The creation_id of the item container.
         """
-        url = f"{GRAPH_API_BASE}/{self.account_id}/media"
+        url = f"{FB_GRAPH_API_BASE}/{self.account_id}/media"
         params = {
             "image_url": image_url,
             "is_carousel_item": "true",
@@ -96,7 +97,7 @@ class InstagramAPI:
         Returns:
             The published media ID.
         """
-        url = f"{GRAPH_API_BASE}/{self.account_id}/media_publish"
+        url = f"{FB_GRAPH_API_BASE}/{self.account_id}/media_publish"
         params = {
             "creation_id": creation_id,
             "access_token": self.access_token,
@@ -115,7 +116,7 @@ class InstagramAPI:
         Returns:
             Dict with status_code and other info.
         """
-        url = f"{GRAPH_API_BASE}/{media_id}"
+        url = f"{FB_GRAPH_API_BASE}/{media_id}"
         params = {
             "fields": "status_code,status",
             "access_token": self.access_token,
@@ -130,9 +131,12 @@ class InstagramAPI:
         Returns:
             Dict with follower count, media count, etc.
         """
-        url = f"{GRAPH_API_BASE}/{self.account_id}"
+        url = f"{IG_GRAPH_API_BASE}/me"
         params = {
-            "fields": "followers_count,media_count,username,name,biography,profile_picture_url",
+            "fields": (
+                "id,username,account_type,media_count,"
+                "followers_count,follows_count,name,biography,profile_picture_url"
+            ),
             "access_token": self.access_token,
         }
         resp = await self.client.get(url, params=params)
@@ -148,7 +152,7 @@ class InstagramAPI:
         Returns:
             List of media objects with engagement data.
         """
-        url = f"{GRAPH_API_BASE}/{self.account_id}/media"
+        url = f"{IG_GRAPH_API_BASE}/me/media"
         params = {
             "fields": "id,caption,media_type,media_url,timestamp,like_count,comments_count",
             "limit": str(limit),
