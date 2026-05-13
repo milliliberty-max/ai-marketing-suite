@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram CrewAI Automation</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">📸</span>
+                <h1>InstaAI</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#" class="active" data-tab="dashboard">Dashboard</a></li>
+                <li><a href="#" data-tab="generate">Generate Content</a></li>
+                <li><a href="#" data-tab="schedule">Schedule Posts</a></li>
+                <li><a href="#" data-tab="scheduled-list">Scheduled Posts</a></li>
+                <li><a href="#" data-tab="post-now">Post Now</a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="content">
+            <!-- Dashboard Tab -->
+            <section id="tab-dashboard" class="tab active">
+                <h2>Dashboard</h2>
+                <div class="stats-grid" id="stats-grid">
+                    <div class="stat-card">
+                        <h3>Followers</h3>
+                        <p id="stat-followers">—</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Posts</h3>
+                        <p id="stat-posts">—</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Username</h3>
+                        <p id="stat-username">—</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Scheduled</h3>
+                        <p id="stat-scheduled">—</p>
+                    </div>
+                </div>
+                <h3 style="margin-top: 2rem;">Recent Posts</h3>
+                <div id="recent-posts" class="posts-grid">
+                    <p class="placeholder">Loading recent posts...</p>
+                </div>
+            </section>
+
+            <!-- Generate Content Tab -->
+            <section id="tab-generate" class="tab">
+                <h2>Generate Content with AI</h2>
+                <form id="generate-form" class="form-card">
+                    <div class="form-group">
+                        <label for="topic">Topic / Theme *</label>
+                        <input type="text" id="topic" placeholder="e.g., Summer shoe collection launch" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="brand-voice">Brand Voice</label>
+                        <select id="brand-voice">
+                            <option value="professional yet friendly">Professional yet friendly</option>
+                            <option value="casual and fun">Casual and fun</option>
+                            <option value="luxury and premium">Luxury and premium</option>
+                            <option value="bold and edgy">Bold and edgy</option>
+                            <option value="warm and inspirational">Warm and inspirational</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="target-audience">Target Audience</label>
+                        <input type="text" id="target-audience" placeholder="e.g., fashion-conscious millennials" value="general audience">
+                    </div>
+                    <div class="form-group">
+                        <label for="post-type">Post Type</label>
+                        <select id="post-type">
+                            <option value="single image">Single Image</option>
+                            <option value="carousel">Carousel</option>
+                            <option value="reel">Reel</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="num-posts">Number of Variations</label>
+                        <input type="number" id="num-posts" min="1" max="5" value="1">
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="generate-btn">
+                        Generate Content
+                    </button>
+                </form>
+                <div id="generate-result" class="result-card" style="display:none;">
+                    <h3>Generated Content</h3>
+                    <pre id="generate-output"></pre>
+                </div>
+            </section>
+
+            <!-- Schedule Tab -->
+            <section id="tab-schedule" class="tab">
+                <h2>Schedule a Post</h2>
+                <form id="schedule-form" class="form-card">
+                    <div class="form-group">
+                        <label for="sched-image-url">Image URL *</label>
+                        <input type="url" id="sched-image-url" placeholder="https://example.com/image.jpg" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sched-caption">Caption *</label>
+                        <textarea id="sched-caption" rows="4" placeholder="Write your caption here..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="sched-hashtags">Hashtags</label>
+                        <textarea id="sched-hashtags" rows="2" placeholder="#fashion #style #shoes"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="sched-time">Scheduled Time (UTC) *</label>
+                        <input type="datetime-local" id="sched-time" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Schedule Post</button>
+                </form>
+                <div id="schedule-result" class="result-card" style="display:none;"></div>
+            </section>
+
+            <!-- Scheduled Posts List Tab -->
+            <section id="tab-scheduled-list" class="tab">
+                <h2>Scheduled Posts</h2>
+                <button class="btn btn-secondary" id="refresh-scheduled">Refresh</button>
+                <div id="scheduled-posts-list" class="posts-list">
+                    <p class="placeholder">Loading...</p>
+                </div>
+            </section>
+
+            <!-- Post Now Tab -->
+            <section id="tab-post-now" class="tab">
+                <h2>Post Now</h2>
+                <form id="post-now-form" class="form-card">
+                    <div class="form-group">
+                        <label for="now-image-url">Image URL *</label>
+                        <input type="url" id="now-image-url" placeholder="https://example.com/image.jpg" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="now-caption">Caption *</label>
+                        <textarea id="now-caption" rows="4" placeholder="Write your caption here..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="now-hashtags">Hashtags</label>
+                        <textarea id="now-hashtags" rows="2" placeholder="#fashion #style #shoes"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Publish Now</button>
+                </form>
+                <div id="post-now-result" class="result-card" style="display:none;"></div>
+            </section>
+        </main>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay" style="display:none;">
+        <div class="spinner"></div>
+        <p id="loading-text">Processing...</p>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
