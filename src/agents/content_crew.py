@@ -1,8 +1,13 @@
 """CrewAI agents for Instagram content creation and strategy."""
 
+import logging
+
 from crewai import Agent, Crew, Process, Task
 
 from src.tools.crewai_tools import get_account_insights, get_recent_posts
+from src.tools.image_analyzer import analyze_image_from_url
+
+logger = logging.getLogger(__name__)
 
 
 def create_content_strategist() -> Agent:
@@ -85,6 +90,7 @@ def run_content_generation_crew(
     target_audience: str = "general audience",
     post_type: str = "single image",
     num_posts: int = 1,
+    image_url: str = "",
 ) -> dict:
     """Run the full content generation crew to create Instagram post content.
 
@@ -94,21 +100,49 @@ def run_content_generation_crew(
         target_audience: Who the content is for.
         post_type: Type of post (single image, carousel, reel).
         num_posts: Number of post variations to generate.
+        image_url: Optional image URL to analyze for context.
 
     Returns:
         Dict with captions, hashtags, and scheduling recommendations.
     """
+    image_description = ""
+    if image_url:
+        try:
+            logger.info("Analyzing image: %s", image_url[:80])
+            image_description = analyze_image_from_url(
+                image_url,
+                context=f"Brand: River Walk. Topic: {topic}. "
+                f"Audience: {target_audience}",
+            )
+            logger.info("Image analysis complete")
+        except Exception as e:
+            logger.error("Image analysis failed: %s", e)
+            image_description = ""
+
     strategist = create_content_strategist()
     caption_writer = create_caption_writer()
     hashtag_researcher = create_hashtag_researcher()
     scheduler = create_scheduler_agent()
 
+    image_context = ""
+    if image_description:
+        image_context = (
+            f"\n\nIMAGE ANALYSIS (what the photo shows):\n"
+            f"{image_description}\n\n"
+            f"IMPORTANT: Use these specific visual details from the "
+            f"image to write authentic, product-specific captions. "
+            f"Mention the actual materials, colors, and details "
+            f"visible in the photo."
+        )
+
     strategy_task = Task(
         description=(
-            f"Analyze the Instagram account's current performance and recent posts. "
-            f"Based on the topic '{topic}', target audience '{target_audience}', "
-            f"and post type '{post_type}', provide a brief content strategy including "
-            f"key themes, emotional hooks, and engagement tactics to use."
+            f"Analyze the Instagram account's current performance. "
+            f"Based on the topic '{topic}', target audience "
+            f"'{target_audience}', and post type '{post_type}', "
+            f"provide a content strategy with key themes, "
+            f"emotional hooks, and engagement tactics."
+            f"{image_context}"
         ),
         expected_output=(
             "A concise content strategy with: "
@@ -122,19 +156,25 @@ def run_content_generation_crew(
 
     caption_task = Task(
         description=(
-            f"Using the content strategy provided, write {num_posts} Instagram "
-            f"caption(s) for a {post_type} post about '{topic}'. "
-            f"Brand voice: {brand_voice}. Target audience: {target_audience}. "
-            f"Each caption should be engaging, include a hook in the first line, "
-            f"have a clear CTA, and be optimized for Instagram's algorithm. "
-            f"Do NOT include hashtags — those will be added separately."
+            f"Write {num_posts} professional Instagram caption(s) "
+            f"for a {post_type} post about '{topic}'. "
+            f"Brand voice: {brand_voice}. "
+            f"Target audience: {target_audience}. "
+            f"{image_context}"
+            f"\nRULES:\n"
+            f"- First line must be an attention-grabbing hook\n"
+            f"- Describe the ACTUAL product shown in the image\n"
+            f"- Mention specific materials, colors, craftsmanship\n"
+            f"- Sound premium and luxurious, not generic\n"
+            f"- Include a compelling CTA\n"
+            f"- Use emojis sparingly and elegantly\n"
+            f"- Do NOT include hashtags (added separately)"
         ),
         expected_output=(
-            f"{num_posts} polished Instagram caption(s), each with: "
-            "1) An attention-grabbing first line, "
-            "2) Valuable/entertaining body content, "
-            "3) A clear call-to-action, "
-            "4) Appropriate emoji usage."
+            f"{num_posts} polished, professional Instagram caption(s) "
+            "that specifically describe the product in the image. "
+            "Each must have: an attention-grabbing first line, "
+            "product-specific details, and a clear CTA."
         ),
         agent=caption_writer,
         context=[strategy_task],
@@ -142,18 +182,16 @@ def run_content_generation_crew(
 
     hashtag_task = Task(
         description=(
-            f"Research and curate 20-30 relevant hashtags for an Instagram post "
-            f"about '{topic}' targeting '{target_audience}'. "
-            f"Organize them into: "
-            f"- 5 high-volume hashtags (500K+ posts), "
-            f"- 10 medium-volume hashtags (50K-500K posts), "
-            f"- 10 niche hashtags (under 50K posts). "
+            f"Curate 20-30 relevant hashtags for an Instagram "
+            f"post about '{topic}' targeting '{target_audience}'. "
+            f"Organize: 5 high-volume (500K+), "
+            f"10 medium (50K-500K), 10 niche (under 50K). "
             f"Also suggest 2-3 branded hashtag ideas."
         ),
         expected_output=(
-            "A curated list of 25-30 hashtags organized by volume tier, "
+            "A curated list of 25-30 hashtags organized by tier, "
             "plus 2-3 branded hashtag suggestions. "
-            "Format each set as a copy-paste ready block."
+            "Format as copy-paste ready blocks."
         ),
         agent=hashtag_researcher,
         context=[strategy_task],
@@ -161,16 +199,15 @@ def run_content_generation_crew(
 
     schedule_task = Task(
         description=(
-            "Based on the account's recent posting patterns and engagement data, "
-            "recommend the top 3 optimal times to publish this post. "
-            "Consider the target audience's likely time zones and activity patterns. "
-            "Provide specific days and times (in UTC)."
+            "Recommend the top 3 optimal times to publish this "
+            "post based on engagement patterns. Consider the "
+            "target audience's time zones. Provide specific "
+            "days and times (in UTC)."
         ),
         expected_output=(
             "Top 3 recommended posting times with: "
             "1) Specific day and time (UTC), "
-            "2) Reasoning for each recommendation, "
-            "3) Expected engagement level (high/medium)."
+            "2) Reasoning, 3) Expected engagement level."
         ),
         agent=scheduler,
         context=[strategy_task],
@@ -191,4 +228,6 @@ def run_content_generation_crew(
         "brand_voice": brand_voice,
         "target_audience": target_audience,
         "post_type": post_type,
+        "image_analyzed": bool(image_description),
+        "image_description": image_description[:300] if image_description else "",
     }

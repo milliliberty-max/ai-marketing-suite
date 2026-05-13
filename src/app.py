@@ -1,16 +1,23 @@
 """FastAPI application for Instagram CrewAI Automation."""
 
 import logging
+import shutil
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from src.agents.content_crew import run_content_generation_crew
+from src.auto_poster import (
+    auto_post_next_image,
+    get_auto_post_log,
+    get_unposted_images,
+)
 from src.models import (
     ContentGenerationRequest,
     ContentResponse,
@@ -43,6 +50,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -53,7 +68,30 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request):
-    return templates.TemplateResponse(request=request, name="dashboard.html")
+    insights = {}
+    recent = []
+    scheduled_posts = post_scheduler.get_all_posts()
+    pending_count = len([p for p in scheduled_posts if p["status"] == "pending"])
+
+    try:
+        insights = await instagram_api.get_account_insights()
+    except Exception as e:
+        logger.error("Dashboard insights error: %s", e)
+
+    try:
+        recent = await instagram_api.get_recent_media(6)
+    except Exception as e:
+        logger.error("Dashboard recent posts error: %s", e)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="dashboard.html",
+        context={
+            "insights": insights,
+            "recent_posts": recent,
+            "pending_count": pending_count,
+        },
+    )
 
 
 # ── Content Generation ─────────────────────────────────────────────────────
@@ -69,6 +107,7 @@ async def generate_content(req: ContentGenerationRequest):
             target_audience=req.target_audience,
             post_type=req.post_type,
             num_posts=req.num_posts,
+            image_url=req.image_url,
         )
         return ContentResponse(success=True, data=result)
     except Exception as e:
@@ -168,6 +207,54 @@ async def get_recent_posts(limit: int = 10):
     except Exception as e:
         logger.error("Failed to get recent posts: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Auto Poster (Folder-based) ─────────────────────────────────────────────
+
+
+UPLOADS_DIR = BASE_DIR / "uploads"
+
+
+@app.post("/api/upload-images")
+async def upload_images(files: list[UploadFile]):
+    """Upload images to the auto-post folder."""
+    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    uploaded = []
+    for file in files:
+        if not file.filename:
+            continue
+        dest = UPLOADS_DIR / file.filename
+        with open(dest, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        uploaded.append(file.filename)
+    return {
+        "success": True,
+        "uploaded": uploaded,
+        "total": len(uploaded),
+    }
+
+
+@app.get("/api/folder-status")
+async def folder_status():
+    """Get status of the uploads folder."""
+    unposted = get_unposted_images()
+    post_log = get_auto_post_log()
+    return {
+        "success": True,
+        "unposted_count": len(unposted),
+        "unposted_files": [f.name for f in unposted],
+        "total_posted": len([p for p in post_log if p["status"] == "posted"]),
+        "recent_log": post_log[-10:],
+    }
+
+
+@app.post("/api/auto-post-now")
+async def trigger_auto_post():
+    """Manually trigger an auto-post right now."""
+    result = await auto_post_next_image()
+    if result["status"] == "error":
+        raise HTTPException(status_code=500, detail=result["message"])
+    return {"success": True, **result}
 
 
 # ── Health ─────────────────────────────────────────────────────────────────

@@ -20,6 +20,10 @@ class ContentGenerationRequest(BaseModel):
         description="Post type: single image, carousel, or reel",
     )
     num_posts: int = Field(default=1, ge=1, le=5, description="Number of variations")
+    image_url: str = Field(
+        default="",
+        description="Image URL for AI to analyze and describe the product",
+    )
 
 
 class SchedulePostRequest(BaseModel):

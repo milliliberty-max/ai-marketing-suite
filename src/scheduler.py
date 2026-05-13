@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 
 from src.tools.instagram_api import instagram_api
@@ -40,6 +41,24 @@ class PostScheduler:
             self.scheduler.start()
             logger.info("Post scheduler started")
             self._restore_pending_jobs()
+            self._setup_daily_auto_post()
+
+    def _setup_daily_auto_post(self) -> None:
+        """Set up daily auto-post job at 10:00 AM UTC."""
+        self.scheduler.add_job(
+            self._run_daily_auto_post,
+            trigger=CronTrigger(hour=10, minute=0),
+            id="daily_auto_post",
+            replace_existing=True,
+        )
+        logger.info("Daily auto-post scheduled for 10:00 UTC")
+
+    async def _run_daily_auto_post(self) -> None:
+        """Execute the daily auto-post."""
+        from src.auto_poster import auto_post_next_image
+        logger.info("Running daily auto-post...")
+        result = await auto_post_next_image()
+        logger.info("Daily auto-post result: %s", result.get('status'))
 
     def _restore_pending_jobs(self) -> None:
         now = datetime.now(timezone.utc)

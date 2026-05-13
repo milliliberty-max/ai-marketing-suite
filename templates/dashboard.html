@@ -16,6 +16,7 @@
             </div>
             <ul class="nav-links">
                 <li><a href="#" class="active" data-tab="dashboard">Dashboard</a></li>
+                <li><a href="#" data-tab="auto-poster">Auto Poster</a></li>
                 <li><a href="#" data-tab="generate">Generate Content</a></li>
                 <li><a href="#" data-tab="schedule">Schedule Posts</a></li>
                 <li><a href="#" data-tab="scheduled-list">Scheduled Posts</a></li>
@@ -31,24 +32,95 @@
                 <div class="stats-grid" id="stats-grid">
                     <div class="stat-card">
                         <h3>Followers</h3>
-                        <p id="stat-followers">—</p>
+                        <p id="stat-followers">{{ insights.get('followers_count', 0) }}</p>
                     </div>
                     <div class="stat-card">
                         <h3>Total Posts</h3>
-                        <p id="stat-posts">—</p>
+                        <p id="stat-posts">{{ insights.get('media_count', 0) }}</p>
                     </div>
                     <div class="stat-card">
                         <h3>Username</h3>
-                        <p id="stat-username">—</p>
+                        <p id="stat-username">@{{ insights.get('username', 'N/A') }}</p>
                     </div>
                     <div class="stat-card">
                         <h3>Scheduled</h3>
-                        <p id="stat-scheduled">—</p>
+                        <p id="stat-scheduled">{{ pending_count }}</p>
                     </div>
                 </div>
                 <h3 style="margin-top: 2rem;">Recent Posts</h3>
                 <div id="recent-posts" class="posts-grid">
-                    <p class="placeholder">Loading recent posts...</p>
+                    {% if recent_posts %}
+                        {% for post in recent_posts %}
+                        <div class="post-card">
+                            <div class="caption">{{ (post.get('caption', 'No caption') or 'No caption')[:150] }}</div>
+                            <div class="meta">
+                                <div class="engagement">
+                                    <span>❤️ {{ post.get('like_count', 0) }}</span>
+                                    <span>💬 {{ post.get('comments_count', 0) }}</span>
+                                </div>
+                                <span>{{ post.get('timestamp', '')[:10] }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="placeholder">No recent posts found.</p>
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- Auto Poster Tab -->
+            <section id="tab-auto-poster" class="tab">
+                <h2>Auto Poster (Folder-based)</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                    Upload images to the folder. AI will automatically generate
+                    professional captions, hashtags, and post to Instagram daily.
+                </p>
+
+                <div class="stats-grid" id="folder-stats">
+                    <div class="stat-card">
+                        <h3>Queued Images</h3>
+                        <p id="stat-unposted">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Posted</h3>
+                        <p id="stat-total-posted">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Schedule</h3>
+                        <p style="font-size: 0.9rem;">Daily 10:00 UTC</p>
+                    </div>
+                </div>
+
+                <div class="form-card" style="margin-top: 1.5rem;">
+                    <h3>Upload Images</h3>
+                    <form id="upload-form" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="image-files">Select Images</label>
+                            <input type="file" id="image-files" multiple
+                                accept=".jpg,.jpeg,.png,.webp"
+                                style="color: var(--text-primary);">
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            Upload to Queue
+                        </button>
+                    </form>
+                </div>
+
+                <div class="form-card" style="margin-top: 1rem;">
+                    <button id="auto-post-now-btn" class="btn btn-primary"
+                        style="background: var(--accent-gradient);">
+                        Post Next Image Now (AI Auto-Caption)
+                    </button>
+                </div>
+
+                <h3 style="margin-top: 2rem;">Queued Files</h3>
+                <div id="queued-files" class="posts-grid">
+                    <p class="placeholder">No images in queue.</p>
+                </div>
+
+                <h3 style="margin-top: 2rem;">Recent Auto-Post Log</h3>
+                <div id="auto-post-log" class="posts-grid">
+                    <p class="placeholder">No posts yet.</p>
                 </div>
             </section>
 
@@ -56,6 +128,11 @@
             <section id="tab-generate" class="tab">
                 <h2>Generate Content with AI</h2>
                 <form id="generate-form" class="form-card">
+                    <div class="form-group">
+                        <label for="gen-image-url">Product Image URL (AI will analyze the image)</label>
+                        <input type="url" id="gen-image-url" placeholder="https://example.com/product-photo.jpg">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">Paste the image URL so AI can see your product and write specific descriptions</small>
+                    </div>
                     <div class="form-group">
                         <label for="topic">Topic / Theme *</label>
                         <input type="text" id="topic" placeholder="e.g., Summer shoe collection launch" required>

@@ -12,6 +12,7 @@ document.querySelectorAll('.nav-links a').forEach(link => {
         document.getElementById(`tab-${tabId}`).classList.add('active');
 
         if (tabId === 'dashboard') loadDashboard();
+        if (tabId === 'auto-poster') loadFolderStatus();
         if (tabId === 'scheduled-list') loadScheduledPosts();
     });
 });
@@ -32,6 +33,7 @@ function hideLoading() {
 async function apiCall(url, options = {}) {
     const resp = await fetch(url, {
         headers: { 'Content-Type': 'application/json', ...options.headers },
+        credentials: 'include',
         ...options,
     });
     const data = await resp.json();
@@ -94,13 +96,106 @@ function renderRecentPosts(posts) {
     `).join('');
 }
 
+// ── Auto Poster ───────────────────────────────────────────────────────────
+
+async function loadFolderStatus() {
+    try {
+        const data = await apiCall('/api/folder-status');
+        document.getElementById('stat-unposted').textContent = data.unposted_count;
+        document.getElementById('stat-total-posted').textContent = data.total_posted;
+
+        const queuedDiv = document.getElementById('queued-files');
+        if (data.unposted_files.length > 0) {
+            queuedDiv.innerHTML = data.unposted_files.map(f => `
+                <div class="post-card">
+                    <div class="caption">${f}</div>
+                    <div class="meta"><span>Queued</span></div>
+                </div>
+            `).join('');
+        } else {
+            queuedDiv.innerHTML = '<p class="placeholder">No images in queue.</p>';
+        }
+
+        const logDiv = document.getElementById('auto-post-log');
+        if (data.recent_log.length > 0) {
+            logDiv.innerHTML = data.recent_log.reverse().map(l => `
+                <div class="post-card">
+                    <div class="caption">${l.filename}</div>
+                    <div class="meta">
+                        <span style="color: ${l.status === 'posted' ? '#4caf50' : '#f44336'}">
+                            ${l.status.toUpperCase()}
+                        </span>
+                        <span>${l.timestamp ? new Date(l.timestamp).toLocaleString() : ''}</span>
+                    </div>
+                    ${l.caption_preview ? `<div style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem;">${l.caption_preview.substring(0, 100)}...</div>` : ''}
+                </div>
+            `).join('');
+        } else {
+            logDiv.innerHTML = '<p class="placeholder">No posts yet.</p>';
+        }
+    } catch (err) {
+        console.error('Folder status error:', err);
+    }
+}
+
+document.getElementById('upload-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('image-files');
+    if (!input.files.length) return;
+
+    showLoading('Uploading images...');
+    const formData = new FormData();
+    for (const file of input.files) {
+        formData.append('files', file);
+    }
+
+    try {
+        const resp = await fetch('/api/upload-images', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData,
+        });
+        const data = await resp.json();
+        hideLoading();
+        alert(`Uploaded ${data.total} image(s) to queue!`);
+        input.value = '';
+        loadFolderStatus();
+    } catch (err) {
+        hideLoading();
+        alert('Upload failed: ' + err.message);
+    }
+});
+
+document.getElementById('auto-post-now-btn').addEventListener('click', async () => {
+    if (!confirm('Post the next queued image now? AI will generate the caption automatically.')) return;
+
+    showLoading('AI is analyzing image, generating caption, and posting... This may take 2-3 minutes.');
+    try {
+        const data = await apiCall('/api/auto-post-now', { method: 'POST' });
+        hideLoading();
+        if (data.status === 'posted') {
+            alert(`Posted! Image: ${data.filename}\nMedia ID: ${data.media_id}`);
+        } else {
+            alert(data.message || 'No images to post.');
+        }
+        loadFolderStatus();
+    } catch (err) {
+        hideLoading();
+        alert('Auto-post failed: ' + err.message);
+    }
+});
+
 // ── Content Generation ────────────────────────────────────────────────────
 
 document.getElementById('generate-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('generate-btn');
     btn.disabled = true;
-    showLoading('AI agents are generating your content... This may take 1-2 minutes.');
+    const imageUrl = document.getElementById('gen-image-url').value;
+    const loadingMsg = imageUrl
+        ? 'AI is analyzing your image and generating professional content... This may take 2-3 minutes.'
+        : 'AI agents are generating your content... This may take 1-2 minutes.';
+    showLoading(loadingMsg);
 
     try {
         const data = await apiCall('/api/generate', {
@@ -111,6 +206,7 @@ document.getElementById('generate-form').addEventListener('submit', async (e) =>
                 target_audience: document.getElementById('target-audience').value,
                 post_type: document.getElementById('post-type').value,
                 num_posts: parseInt(document.getElementById('num-posts').value),
+                image_url: imageUrl,
             }),
         });
 
