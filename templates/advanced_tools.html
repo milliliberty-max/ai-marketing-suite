@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Tools - InstaAI</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .tool-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.2rem; margin-top: 1.5rem; }
+        .tool-card { background: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border-color); }
+        .tool-card h3 { color: var(--text-primary); margin-bottom: 0.5rem; font-size: 1.1rem; }
+        .tool-card p { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem; }
+        .tool-card .badge { display: inline-block; background: var(--accent-gradient); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-bottom: 0.5rem; }
+        .badge.analytics { background: linear-gradient(135deg, #00b4d8, #0077b6); }
+        .badge.content { background: linear-gradient(135deg, #e63946, #f4a261); }
+        .badge.engagement { background: linear-gradient(135deg, #2a9d8f, #264653); }
+        .badge.multiplatform { background: linear-gradient(135deg, #7209b7, #3a0ca3); }
+        .badge.ecommerce { background: linear-gradient(135deg, #f72585, #b5179e); }
+        .section-title { color: var(--text-primary); margin: 2rem 0 0.5rem; font-size: 1.2rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
+        .result-box { background: #1a1a2e; border-radius: 8px; padding: 1rem; margin-top: 1rem; white-space: pre-wrap; color: var(--text-secondary); font-size: 0.85rem; max-height: 400px; overflow-y: auto; display: none; }
+        .btn-tool { background: var(--accent-gradient); color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; width: 100%; }
+        .btn-tool:hover { opacity: 0.9; }
+        .btn-tool:disabled { opacity: 0.5; cursor: not-allowed; }
+        .input-field { width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); margin-bottom: 0.8rem; font-size: 0.85rem; box-sizing: border-box; }
+        textarea.input-field { min-height: 80px; resize: vertical; }
+        select.input-field { appearance: auto; }
+        .loading { color: #ffd700; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <nav class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">📸</span>
+                <h1>InstaAI</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="/">Dashboard</a></li>
+                <li><a href="/auto-poster">Auto Poster</a></li>
+                <li><a href="/growth-tools">Growth Tools</a></li>
+                <li><a href="/advanced-tools" class="active">Advanced Tools</a></li>
+            </ul>
+        </nav>
+
+        <main class="content">
+            <section class="tab active">
+                <h2>Advanced Tools (16 AI Agents)</h2>
+                <p style="color: var(--text-secondary);">Advanced AI-powered tools for analytics, content, engagement, multi-platform, and e-commerce.</p>
+
+                <!-- ANALYTICS & TRACKING -->
+                <h3 class="section-title">Analytics & Tracking</h3>
+                <div class="tool-grid">
+                    <!-- 1. Performance Tracker -->
+                    <div class="tool-card">
+                        <span class="badge analytics">Agent 1</span>
+                        <h3>Performance Tracker</h3>
+                        <p>Analyze post performance patterns and get actionable insights.</p>
+                        <textarea class="input-field" id="perf-data" placeholder="Paste post data (optional): e.g., Post 1: 50 likes, 3 comments..."></textarea>
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/performance', {post_data: document.getElementById('perf-data').value}, 'perf-result')">Analyze Performance</button>
+                        <div class="result-box" id="perf-result"></div>
+                    </div>
+
+                    <!-- 2. Best Time Analyzer -->
+                    <div class="tool-card">
+                        <span class="badge analytics">Agent 2</span>
+                        <h3>Best Time Analyzer</h3>
+                        <p>Find optimal posting times for your audience timezone.</p>
+                        <select class="input-field" id="timezone-select">
+                            <option value="PKT">Pakistan (PKT)</option>
+                            <option value="UAE">UAE (GST)</option>
+                            <option value="UK">UK (GMT/BST)</option>
+                            <option value="US-EST">US East (EST)</option>
+                        </select>
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/best-times', {timezone: document.getElementById('timezone-select').value}, 'time-result')">Analyze Best Times</button>
+                        <div class="result-box" id="time-result"></div>
+                    </div>
+
+                    <!-- 3. Growth Report -->
+                    <div class="tool-card">
+                        <span class="badge analytics">Agent 3</span>
+                        <h3>Follower Growth Report</h3>
+                        <p>Get weekly/monthly growth projections and action items.</p>
+                        <input type="number" class="input-field" id="follower-count" placeholder="Current followers (e.g., 0)" value="0">
+                        <input type="number" class="input-field" id="post-count" placeholder="Total posts (e.g., 27)" value="27">
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/growth-report', {current_followers: parseInt(document.getElementById('follower-count').value), total_posts: parseInt(document.getElementById('post-count').value)}, 'growth-result')">Generate Report</button>
+                        <div class="result-box" id="growth-result"></div>
+                    </div>
+                </div>
+
+                <!-- CONTENT ENHANCEMENT -->
+                <h3 class="section-title">Content Enhancement</h3>
+                <div class="tool-grid">
+                    <!-- 4. Carousel Creator -->
+                    <div class="tool-card">
+                        <span class="badge content">Agent 4</span>
+                        <h3>Carousel Post Creator</h3>
+                        <p>Design multi-slide carousel posts for maximum engagement.</p>
+                        <input type="text" class="input-field" id="carousel-product" placeholder="Product: e.g., bridal clutch collection" value="luxury clutch">
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/carousel', {product: document.getElementById('carousel-product').value}, 'carousel-result')">Create Carousel</button>
+                        <div class="result-box" id="carousel-result"></div>
+                    </div>
+
+                    <!-- 5. Before/After -->
+                    <div class="tool-card">
+                        <span class="badge content">Agent 5</span>
+                        <h3>Before/After Creator</h3>
+                        <p>Create transformation content (packaging, styling, crafting).</p>
+                        <input type="text" class="input-field" id="ba-product" placeholder="Product: e.g., gold beaded clutch" value="luxury clutch">
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/before-after', {product: document.getElementById('ba-product').value}, 'ba-result')">Create Before/After</button>
+                        <div class="result-box" id="ba-result"></div>
+                    </div>
+
+                    <!-- 6. UGC Campaign -->
+                    <div class="tool-card">
+                        <span class="badge content">Agent 6</span>
+                        <h3>UGC Campaign Creator</h3>
+                        <p>Build user-generated content campaigns (hashtags, contests, spotlights).</p>
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/ugc', {}, 'ugc-result')">Create UGC Campaign</button>
+                        <div class="result-box" id="ugc-result"></div>
+                    </div>
+
+                    <!-- 7. Trend/Meme Agent -->
+                    <div class="tool-card">
+                        <span class="badge content">Agent 7</span>
+                        <h3>Trend & Meme Creator</h3>
+                        <p>Adapt trending formats and memes for your luxury brand.</p>
+                        <input type="text" class="input-field" id="trend-input" placeholder="Trend to adapt (optional): e.g., aesthetic unboxing">
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/trends', {trend: document.getElementById('trend-input').value}, 'trend-result')">Create Trend Content</button>
+                        <div class="result-box" id="trend-result"></div>
+                    </div>
+                </div>
+
+                <!-- ENGAGEMENT & COMMUNITY -->
+                <h3 class="section-title">Engagement & Community</h3>
+                <div class="tool-grid">
+                    <!-- 8. DM Templates -->
+                    <div class="tool-card">
+                        <span class="badge engagement">Agent 8</span>
+                        <h3>DM Auto-Reply Templates</h3>
+                        <p>Generate professional DM reply templates for common inquiries.</p>
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/dm-templates', {}, 'dm-result')">Generate DM Templates</button>
+                        <div class="result-box" id="dm-result"></div>
+                    </div>
+
+                    <!-- 9. Collaboration Finder -->
+                    <div class="tool-card">
+                        <span class="badge engagement">Agent 9</span>
+                        <h3>Collaboration Finder</h3>
+                        <p>Find influencer and brand collaboration opportunities.</p>
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/collaborations', {}, 'collab-result')">Find Collaborations</button>
+                        <div class="result-box" id="collab-result"></div>
+                    </div>
+
+                    <!-- 10. Hashtag Tracker -->
+                    <div class="tool-card">
+                        <span class="badge engagement">Agent 10</span>
+                        <h3>Hashtag Performance Tracker</h3>
+                        <p>Get optimized hashtag sets with rotation schedule.</p>
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/hashtag-performance', {}, 'hashtag-result')">Analyze Hashtags</button>
+                        <div class="result-box" id="hashtag-result"></div>
+                    </div>
+                </div>
+
+                <!-- MULTI-PLATFORM -->
+                <h3 class="section-title">Multi-Platform</h3>
+                <div class="tool-grid">
+                    <!-- 11. Facebook -->
+                    <div class="tool-card">
+                        <span class="badge multiplatform">Agent 11</span>
+                        <h3>Facebook Strategy</h3>
+                        <p>Adapt content for Facebook with platform-specific strategy.</p>
+                        <textarea class="input-field" id="fb-caption" placeholder="Instagram caption to adapt (optional)"></textarea>
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/facebook', {instagram_caption: document.getElementById('fb-caption').value}, 'fb-result')">Create FB Strategy</button>
+                        <div class="result-box" id="fb-result"></div>
+                    </div>
+
+                    <!-- 12. Pinterest -->
+                    <div class="tool-card">
+                        <span class="badge multiplatform">Agent 12</span>
+                        <h3>Pinterest Strategy</h3>
+                        <p>Create Pinterest boards, pin descriptions, and SEO keywords.</p>
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/pinterest', {}, 'pin-result')">Create Pinterest Strategy</button>
+                        <div class="result-box" id="pin-result"></div>
+                    </div>
+
+                    <!-- 13. WhatsApp -->
+                    <div class="tool-card">
+                        <span class="badge multiplatform">Agent 13</span>
+                        <h3>WhatsApp Business Strategy</h3>
+                        <p>Create catalog, quick replies, and broadcast strategies.</p>
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/whatsapp', {}, 'wa-result')">Create WA Strategy</button>
+                        <div class="result-box" id="wa-result"></div>
+                    </div>
+                </div>
+
+                <!-- E-COMMERCE -->
+                <h3 class="section-title">E-Commerce Integration</h3>
+                <div class="tool-grid">
+                    <!-- 14. Product Tags -->
+                    <div class="tool-card">
+                        <span class="badge ecommerce">Agent 14</span>
+                        <h3>Product Tag Strategy</h3>
+                        <p>Set up Instagram Shopping with product tags and collections.</p>
+                        <input type="text" class="input-field" id="products-input" placeholder="Products: e.g., clutches, bridal bags, evening purses">
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/product-tags', {products: document.getElementById('products-input').value}, 'tags-result')">Create Strategy</button>
+                        <div class="result-box" id="tags-result"></div>
+                    </div>
+
+                    <!-- 15. Sale Campaign -->
+                    <div class="tool-card">
+                        <span class="badge ecommerce">Agent 15</span>
+                        <h3>Sale Campaign Creator</h3>
+                        <p>Create complete sale/discount campaigns with FOMO and urgency.</p>
+                        <select class="input-field" id="sale-type">
+                            <option value="seasonal">Seasonal Sale</option>
+                            <option value="flash">Flash Sale</option>
+                            <option value="eid">Eid Sale</option>
+                            <option value="wedding">Wedding Season Sale</option>
+                            <option value="clearance">Clearance Sale</option>
+                        </select>
+                        <input type="text" class="input-field" id="discount-input" placeholder="Discount: e.g., 20%, Buy 1 Get 1" value="20%">
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/sale-campaign', {sale_type: document.getElementById('sale-type').value, discount: document.getElementById('discount-input').value}, 'sale-result')">Create Campaign</button>
+                        <div class="result-box" id="sale-result"></div>
+                    </div>
+
+                    <!-- 16. Order Notification -->
+                    <div class="tool-card">
+                        <span class="badge ecommerce">Agent 16</span>
+                        <h3>Order Notification Creator</h3>
+                        <p>Create "Just Sold!" social proof content and templates.</p>
+                        <input type="text" class="input-field" id="order-product" placeholder="Product sold: e.g., gold beaded clutch" value="luxury clutch">
+                        <button class="btn-tool" onclick="runTool(this, '/api/advanced/order-notification', {product_name: document.getElementById('order-product').value}, 'order-result')">Create Templates</button>
+                        <div class="result-box" id="order-result"></div>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <script>
+    async function runTool(btn, endpoint, data, resultId) {
+        const resultBox = document.getElementById(resultId);
+        btn.disabled = true;
+        btn.textContent = 'AI agent is working...';
+        resultBox.style.display = 'block';
+        resultBox.innerHTML = '<span class="loading">AI agent is analyzing... this may take 30-60 seconds...</span>';
+
+        try {
+            const resp = await fetch(endpoint, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await resp.json();
+            if (result.success) {
+                const key = Object.keys(result).find(k => k !== 'success');
+                resultBox.textContent = result[key] || JSON.stringify(result, null, 2);
+            } else {
+                resultBox.textContent = 'Error: ' + (result.detail || JSON.stringify(result));
+            }
+        } catch (err) {
+            resultBox.textContent = 'Error: ' + err.message;
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'Run Again';
+    }
+    </script>
+</body>
+</html>

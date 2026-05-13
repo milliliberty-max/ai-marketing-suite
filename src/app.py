@@ -12,6 +12,24 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from src.agents.advanced_crew import (
+    adapt_for_facebook,
+    analyze_best_times,
+    analyze_hashtag_performance,
+    analyze_performance,
+    create_before_after,
+    create_carousel_strategy,
+    create_order_notification,
+    create_pinterest_strategy,
+    create_product_tags_strategy,
+    create_sale_campaign,
+    create_trend_content,
+    create_ugc_campaign,
+    create_whatsapp_strategy,
+    find_collaborations,
+    generate_dm_templates,
+    generate_growth_report,
+)
 from src.agents.content_crew import run_content_generation_crew
 from src.agents.growth_crew import (
     analyze_competitors,
@@ -393,6 +411,153 @@ async def growth_tools_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="growth_tools.html",
+        context={},
+    )
+
+
+# ── Advanced Tools ─────────────────────────────────────────────────────────
+
+
+@app.post("/api/advanced/performance")
+async def api_performance(request: Request):
+    """Analyze post performance."""
+    data = await request.json()
+    post_data = data.get("post_data", "")
+    result = analyze_performance(post_data)
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/best-times")
+async def api_best_times(request: Request):
+    """Analyze best posting times."""
+    data = await request.json()
+    timezone = data.get("timezone", "PKT")
+    result = analyze_best_times(timezone)
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/growth-report")
+async def api_growth_report(request: Request):
+    """Generate follower growth report."""
+    data = await request.json()
+    followers = data.get("current_followers", 0)
+    posts = data.get("total_posts", 27)
+    result = generate_growth_report(followers, posts)
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/carousel")
+async def api_carousel(request: Request):
+    """Create carousel post strategy."""
+    data = await request.json()
+    product = data.get("product", "luxury clutch")
+    result = create_carousel_strategy(product)
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/before-after")
+async def api_before_after(request: Request):
+    """Create before/after content ideas."""
+    data = await request.json()
+    product = data.get("product", "luxury clutch")
+    result = create_before_after(product)
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/ugc")
+async def api_ugc():
+    """Create UGC campaign strategy."""
+    result = create_ugc_campaign()
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/trends")
+async def api_trends(request: Request):
+    """Create trending content ideas."""
+    data = await request.json()
+    trend = data.get("trend", "")
+    result = create_trend_content(trend)
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/dm-templates")
+async def api_dm_templates():
+    """Generate DM reply templates."""
+    result = generate_dm_templates()
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/collaborations")
+async def api_collaborations():
+    """Find collaboration opportunities."""
+    result = find_collaborations()
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/hashtag-performance")
+async def api_hashtag_performance():
+    """Analyze hashtag performance."""
+    result = analyze_hashtag_performance()
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/facebook")
+async def api_facebook(request: Request):
+    """Adapt content for Facebook."""
+    data = await request.json()
+    caption = data.get("instagram_caption", "")
+    result = adapt_for_facebook(caption)
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/pinterest")
+async def api_pinterest():
+    """Create Pinterest strategy."""
+    result = create_pinterest_strategy()
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/whatsapp")
+async def api_whatsapp():
+    """Create WhatsApp Business strategy."""
+    result = create_whatsapp_strategy()
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/product-tags")
+async def api_product_tags(request: Request):
+    """Create product tag strategy."""
+    data = await request.json()
+    products = data.get("products", "")
+    result = create_product_tags_strategy(products)
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/sale-campaign")
+async def api_sale_campaign(request: Request):
+    """Create sale/discount campaign."""
+    data = await request.json()
+    sale_type = data.get("sale_type", "seasonal")
+    discount = data.get("discount", "20%")
+    result = create_sale_campaign(sale_type, discount)
+    return {"success": True, **result}
+
+
+@app.post("/api/advanced/order-notification")
+async def api_order_notification(request: Request):
+    """Create order notification content."""
+    data = await request.json()
+    product_name = data.get("product_name", "luxury clutch")
+    result = create_order_notification(product_name)
+    return {"success": True, **result}
+
+
+@app.get("/advanced-tools", response_class=HTMLResponse)
+async def advanced_tools_page(request: Request):
+    """Advanced tools dashboard page."""
+    return templates.TemplateResponse(
+        request=request,
+        name="advanced_tools.html",
         context={},
     )
 
